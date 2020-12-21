@@ -1,2 +1,2 @@
 # 888-Aimbeast-Training-Program
-The program's goals is to help making training easier for the game Aimbeast and was made in using C++.
+The program's goals is to help making aim training easier for the game Aimbeast and was made using C++.

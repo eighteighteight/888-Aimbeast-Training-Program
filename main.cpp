@@ -24,7 +24,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.*/
 #include <windows.h>
 #include <fileapi.h>
 #include <cstdlib>
-#include <ctime>
 #include <random>
 
 void sleep(int seconds) {
@@ -366,8 +365,7 @@ void stats() {
         std::cout << "Speed cumulative score: " << config["speed_cum"] << std::endl;
     }
     std::cout << "--------------------------------------------------------------------------------------------------\n";
-    time_t last_per = config["last_per_test"];
-    std::cout << "Last date performance testing: " << std::put_time(std::localtime(&last_per), "%B %d, %Y")
+    std::cout << "Last date day peformance tested: " << config["last_per_test"]
               << std::endl;
     std::cout << "--------------------------------------------------------------------------------------------------\n";
     std::cout << "Enter anything to leave.\n:";
@@ -393,7 +391,7 @@ int peformance_test(bool just_time) {
             for (int i2 = 0; i2 < c.cat_vec.at(i).size(); ++i2) {
                 if (c.cat_vec.at(i).at(i2) == FLICKING && i2 == 0 && config["mastery_flicking"] == false) {
                     clear_screen();
-                    std::cout << "Train each map for " << 1 << " minute." << std::endl;
+                    std::cout << "Train each map for the default time." << std::endl;
                     std::cout << "LEVEL " << flicking_level << std::endl;
                     DIFFICULTIES dTrack;
                     if (i == 0) {
@@ -419,7 +417,7 @@ int peformance_test(bool just_time) {
                     ++map_count;
                 } else if (c.cat_vec.at(i).at(i2) == TRACKING && i2 == 1 && config["mastery_tracking"] == false) {
                     clear_screen();
-                    std::cout << "Train each map for " << 1 << " minute." << std::endl;
+                    std::cout << "Train each map for the default time." << std::endl;
                     std::cout << "LEVEL " << tracking_level << std::endl;
                     DIFFICULTIES dTrack;
                     if (i == 0) {
@@ -445,7 +443,7 @@ int peformance_test(bool just_time) {
                     ++map_count;
                 } else if (c.cat_vec.at(i).size() == 3 && i2 == 2 && config["mastery_speed"] == false) {
                     clear_screen();
-                    std::cout << "Train each map for " << 1 << " minute." << std::endl;
+                    std::cout << "Train each map for the default time." << std::endl;
                     std::cout << "LEVEL " << speed_level << std::endl;
                     DIFFICULTIES dTrack;
                     if (i == 0) {
@@ -553,7 +551,9 @@ int peformance_test(bool just_time) {
         std::cin.ignore();
         std::getline(std::cin, sell);
         std::cin.clear();
-        config["last_per_test"] = time(0);
+        SYSTEMTIME cur_time{};
+        GetLocalTime(&cur_time);
+        config["last_per_test"] = static_cast<WORD>(cur_time.wDay);
         config["t_ns"] = false;
     } else {
         for (int i = 0; i < c.cat_vec.size(); ++i) {
@@ -648,12 +648,10 @@ void train() {
         todays_train_time = config["default_time"];
 
     bool perf_test{};
-    time_t last_per_test = config["last_per_test"];
-    time_t current_date = time(0);
-    tm *last = localtime(&last_per_test);
-    tm *curr = localtime(&current_date);
+    SYSTEMTIME cur_time{};
+    GetLocalTime(&cur_time);
+    WORD conf_time_day = config["last_per_test"];
     if (config["t_ns"]) {
-        if (curr->tm_mday - (last->tm_mday - 1) >= 1) {
             std::cout << "Would you like to account for your daily performance test? (y/n)\n:";
             perf_test = selection_check();
             if (perf_test) {
@@ -661,9 +659,8 @@ void train() {
                 todays_train_time -= peformance_test(true);
             } else
                 std::cout << "Performance test not accounted for.\n";
-        }
     } else {
-        if (curr->tm_mday - last->tm_mday >= 1) {
+        if (cur_time.wDay - conf_time_day >= 1) {
             std::cout << "Would you like to account for your daily performance test? (y/n)\n:";
             perf_test = selection_check();
             if (perf_test) {
@@ -784,7 +781,6 @@ void train() {
         std::cout << "--------------------------------------------------------------------------------------\n";
     }
 
-    std::cout << c.cat_vec.size();
     for (int i = 0; i < c.cat_vec.size(); ++i) {
         c.mastery_toggle = false;
         DIFFICULTIES dTrack;
@@ -885,22 +881,18 @@ bool cmd_promt() {
     }
 
     std::string select{};
-    time_t last_per_test = config["last_per_test"];
-    time_t current_date = time(0);
-    tm *last = localtime(&last_per_test);
-    tm *curr = localtime(&current_date);
-    if (config["t_ns"])
-        last->tm_mday -= 1;
+    SYSTEMTIME cur_time{};
+    GetLocalTime(&cur_time);
+    WORD conf_time_day = config["last_per_test"];
     while (select != "5") {
         clear_screen();
         std::cout << "Welcome " << name << " to 888's training program." << std::endl;
         std::cout << "1 - TRAIN" << std::endl;
         if (config["t_ns"]) {
-            if (curr->tm_mday - (last->tm_mday - 1) >= 1) {
-                std::cout << "2 - PERFORMANCE TEST" << std::endl;
-            }
-        } else {
-            if (curr->tm_mday - last->tm_mday >= 1) {
+            std::cout << "2 - PERFORMANCE TEST" << std::endl;
+        }
+        else {
+            if (cur_time.wDay - conf_time_day >= 1) {
                 std::cout << "2 - PERFORMANCE TEST" << std::endl;
             }
         }
@@ -915,11 +907,9 @@ bool cmd_promt() {
             train();
         else if (select == "2") {
             if (config["t_ns"]) {
-                if (curr->tm_mday - (last->tm_mday - 1) >= 1) {
-                    peformance_test(false);
-                }
+                peformance_test(false);
             } else {
-                if (curr->tm_mday - last->tm_mday >= 1) {
+                if (cur_time.wDay - conf_time_day >= 1) {
                     peformance_test(false);
                 }
             }
@@ -955,7 +945,9 @@ int main() {
     config["flicking_plat"] = 0;
     config["tracking_plat"] = 0;
     config["speed_plat"] = 0;
-    config["last_per_test"] = time(0);
+    SYSTEMTIME cur_time{};
+    GetLocalTime(&cur_time);
+    config["last_per_test"] = static_cast<WORD>(cur_time.wDay);
     config["t_ns"] = true;
 
     if (!DoesFileExist(reinterpret_cast<LPCWSTR>("config.json"))) {
